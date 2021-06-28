@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  php-fpm:
+    container_name: php-fpm
+    build:
+      context: ./
+      dockerfile: .docker/php/Dockerfile
+    environment:
+      PHP_IDE_CONFIG: serverName=json-attribute
+      PATH: "/var/local/bin:/var/local/src/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./:/var/local/json-attribute:delegated
+    stdin_open: true
+    tty: true
