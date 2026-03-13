@@ -1,0 +1,16 @@
+{
+  "id": "doc-1",
+  "address": { "street": "1 Main", "city": "London", "region": null },
+  "scores": [ 10, 0, -3 ],
+  "labels": [ "a", "", "café" ],
+  "tags": [
+    { "id": "t1", "weight": 1 },
+    { "id": "t2", "weight": 0 }
+  ],
+  "firstLine": { "sku": "X", "qty": 2, "price": 9.99 },
+  "lines": [
+    { "sku": "A", "qty": 1, "price": 1.5 },
+    { "sku": "B", "qty": 3, "price": 2 }
+  ],
+  "enabled": true
+}

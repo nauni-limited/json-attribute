@@ -1,0 +1,9 @@
+parameters:
+    paths:
+        - src
+        - tests
+    level: max
+    ignoreErrors:
+        -
+            message: '#Property .+NonNamedType::\$name has no type specified#'
+            path: tests/DataStructure/NonNamedType.php

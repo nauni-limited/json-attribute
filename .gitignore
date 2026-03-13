@@ -1,0 +1,5 @@
+/go/
+/vendor/
+/.phpunit.cache/
+composer.phar
+*.cache

@@ -1,0 +1,10 @@
+{
+  "id": "e",
+  "address": { "street": "s", "city": "c", "region": null },
+  "scores": [],
+  "labels": [],
+  "tags": [],
+  "firstLine": { "sku": "s", "qty": 0, "price": 0 },
+  "lines": [],
+  "enabled": true
+}
