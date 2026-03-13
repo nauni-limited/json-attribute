@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Nauni\JSON\Tests;
 
 use Nauni\JSON\JSON;
@@ -9,74 +11,82 @@ use PHPUnit\Framework\TestCase;
 
 class UnmarshalTest extends TestCase
 {
+    private const TD = 'tests/testdata/';
+
     public function testUnmarshalField(): void
     {
-        $json = JSON::unmarshal(
-            data: JSON::embed('tests/testdata/unmarshalScalarTestData.json'),
-            class: User::class,
-        );
+        $json = JSON::unmarshal(JSON::embed(self::TD . 'unmarshalScalarTestData.json'), User::class);
 
-        $this->assertEquals('John Doe', $json->name);
-        $this->assertEquals('John Doe', $json->person);
+        $this->assertSame('John Doe', $json->name);
+        $this->assertSame('John Doe', $json->person);
         $this->assertNull($json->title);
-        $this->assertEquals('Title', $json->defaultTitle);
-        $this->assertEquals(35, $json->age);
+        $this->assertSame('Title', $json->defaultTitle);
+        $this->assertSame(35, $json->age);
         $this->assertTrue($json->active);
-        $this->assertEquals(1.93, $json->height);
+        $this->assertSame(1.93, $json->height);
     }
 
     public function testUnmarshalNoneNamedType(): void
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Only properties with named types are supported');
-
-        JSON::unmarshal(
-            data: '{"name": "John Doe"}',
-            class: NonNamedType::class,
-        );
+        JSON::unmarshal(JSON::embed(self::TD . 'nonNamedType.json'), NonNamedType::class);
     }
 
     public function testInvalidStringMapping(): void
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Can not map integer to string');
-
-        JSON::unmarshal(
-            data: '{"name": 1}',
-            class: User::class,
-        );
+        JSON::unmarshal(JSON::embed(self::TD . 'userInvalidString.json'), User::class);
     }
 
     public function testInvalidIntMapping(): void
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Can not map string to integer');
-
-        JSON::unmarshal(
-            data: '{"name": "John", "age": "one"}',
-            class: User::class,
-        );
+        JSON::unmarshal(JSON::embed(self::TD . 'userInvalidInt.json'), User::class);
     }
 
     public function testInvalidFloatMapping(): void
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Can not map string to float');
-
-        JSON::unmarshal(
-            data: '{"name": "John", "age": 35, "height": "oneMeterFiveCentimeter"}',
-            class: User::class,
-        );
+        JSON::unmarshal(JSON::embed(self::TD . 'userInvalidFloat.json'), User::class);
     }
 
     public function testInvalidBoolMapping(): void
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Can not map string to bool');
+        JSON::unmarshal(JSON::embed(self::TD . 'userInvalidBool.json'), User::class);
+    }
 
-        JSON::unmarshal(
-            data: '{"name": "John", "age": 35, "height": 1.93, "active": "false"}',
-            class: User::class,
-        );
+    public function testIntZeroAndStringKey(): void
+    {
+        $u = JSON::unmarshal(JSON::embed(self::TD . 'userIntZero.json'), User::class);
+        $this->assertSame('', $u->name);
+        $this->assertSame(0, $u->age);
+        $this->assertSame(0.0, $u->height);
+        $this->assertFalse($u->active);
+    }
+
+    public function testInvalidJsonThrows(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid JSON');
+        JSON::unmarshal(JSON::embed(self::TD . 'invalidJsonOpenBrace.json'), User::class);
+    }
+
+    public function testRootMustBeObject(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('JSON root must be an object');
+        JSON::unmarshal(JSON::embed(self::TD . 'rootArray.json'), User::class);
+    }
+
+    public function testFloatAcceptsIntegerJsonNumber(): void
+    {
+        $u = JSON::unmarshal(JSON::embed(self::TD . 'userFloatFromInt.json'), User::class);
+        $this->assertSame(2.0, $u->height);
     }
 }

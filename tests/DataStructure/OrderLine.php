@@ -6,9 +6,14 @@ namespace Nauni\JSON\Tests\DataStructure;
 
 use Nauni\JSON\Attribute\JSONField;
 
-class NonNamedType
+class OrderLine
 {
-    /** Intentionally untyped for test (getType() not ReflectionNamedType). */
     #[JSONField]
-    public $name;
+    public string $sku;
+
+    #[JSONField]
+    public int $qty;
+
+    #[JSONField]
+    public float $price;
 }

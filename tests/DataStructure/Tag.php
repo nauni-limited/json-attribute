@@ -6,9 +6,11 @@ namespace Nauni\JSON\Tests\DataStructure;
 
 use Nauni\JSON\Attribute\JSONField;
 
-class NonNamedType
+class Tag
 {
-    /** Intentionally untyped for test (getType() not ReflectionNamedType). */
     #[JSONField]
-    public $name;
+    public string $id;
+
+    #[JSONField]
+    public int $weight;
 }

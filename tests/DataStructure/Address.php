@@ -6,9 +6,14 @@ namespace Nauni\JSON\Tests\DataStructure;
 
 use Nauni\JSON\Attribute\JSONField;
 
-class NonNamedType
+class Address
 {
-    /** Intentionally untyped for test (getType() not ReflectionNamedType). */
     #[JSONField]
-    public $name;
+    public string $street;
+
+    #[JSONField]
+    public string $city;
+
+    #[JSONField]
+    public ?string $region;
 }

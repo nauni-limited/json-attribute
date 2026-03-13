@@ -1,71 +1,85 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Nauni\JSON;
 
-use Nauni\JSON\Attribute\JSONField;
-use Nauni\JSON\Field\FieldBool;
-use Nauni\JSON\Field\FieldFloat;
-use Nauni\JSON\Field\FieldInt;
-use Nauni\JSON\Field\FieldInterface;
-use Nauni\JSON\Field\FieldString;
-use ReflectionClass;
-use ReflectionNamedType;
+use JsonException;
+use Nauni\JSON\Decode\JsonDecoder;
+use Nauni\JSON\Extract\ObjectExtractor;
+use Nauni\JSON\Hydrate\ObjectHydrator;
 use RuntimeException;
 
 use function file_get_contents;
+use function json_encode;
+use function sprintf;
 
-class JSON
+/**
+ * Public API: {@see unmarshal}, {@see marshal}, {@see embed}.
+ */
+final class JSON
 {
-    private const FIELD_TYPE_MAPPING = [
-        'string' => FieldString::class,
-        'int' => FieldInt::class,
-        'float' => FieldFloat::class,
-        'bool' => FieldBool::class,
-    ];
+    private static ?ObjectHydrator $hydrator = null;
+
+    private static ?ObjectExtractor $extractor = null;
 
     public static function embed(string $path): string
     {
-        return file_get_contents($path) ?: throw new RuntimeException('Can not load file' . $path);
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new RuntimeException(sprintf('Cannot load file: %s', $path));
+        }
+
+        return $contents;
     }
 
-    public static function unmarshal(string $data, string $class): object
+    /**
+     * JSON text → object (root must be a JSON object).
+     *
+     * @template T of object
+     *
+     * @param class-string<T> $class
+     *
+     * @return T
+     */
+    public static function unmarshal(
+        string $data,
+        string $class,
+        bool $disallowUnknownFields = false
+    ): object {
+        $decoder = new JsonDecoder();
+        $assoc = $decoder->decodeAssocObjectRoot($data);
+
+        return self::hydrator()->hydrate($assoc, $class, $disallowUnknownFields);
+    }
+
+    /**
+     * Object → JSON text (extract mapped fields, then encode).
+     *
+     * @throws RuntimeException on encode failure
+     */
+    public static function marshal(object $instance, int $flags = JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE): string
     {
-        $instance = new $class();
-        $data = json_decode($data, true);
-
-        $reflectionClass = new ReflectionClass($instance);
-        foreach ($reflectionClass->getProperties() as $property) {
-            $attributes = $property->getAttributes(JSONField::class);
-            foreach ($attributes as $attribute) {
-                $jsonAttribute = $attribute->newInstance();
-                if (!$jsonAttribute->field) {
-                    $jsonAttribute->field = $property->getName()
-                        ?? throw new \RuntimeException('Can not resolve field mapping');
-                }
-                $propertyType = $property->getType();
-
-                if (!$propertyType instanceof ReflectionNamedType) {
-                    throw new \RuntimeException('Only properties with named types are supported');
-                }
-
-                if (array_key_exists($propertyType->getName(), self::FIELD_TYPE_MAPPING)) {
-                    /** @var FieldInterface $handlerClass */
-                    $handlerClass = self::FIELD_TYPE_MAPPING[$propertyType->getName()];
-                    $value = $handlerClass::getFieldValue($data, $jsonAttribute->field);
-                    if ($value === null && !$propertyType->allowsNull()) {
-                        if ($jsonAttribute->default) {
-                            $instance->{$property->name} = $jsonAttribute->default;
-                            continue;
-                        }
-                        throw new RuntimeException('Property is not nullable: ' . $property->name);
-                    }
-                    $instance->{$property->name} = $value;
-                    continue;
-                }
-
-                throw new RuntimeException('Can not resolve mandatory property: ' . $property->name);
+        $payload = self::extractor()->extract($instance);
+        try {
+            $json = json_encode($payload, $flags);
+            if ($json === false) {
+                throw new RuntimeException('Marshal JSON encode failed');
             }
+
+            return $json;
+        } catch (JsonException $e) {
+            throw new RuntimeException('Marshal JSON encode failed: ' . $e->getMessage(), 0, $e);
         }
-        return $instance;
+    }
+
+    private static function hydrator(): ObjectHydrator
+    {
+        return self::$hydrator ??= new ObjectHydrator();
+    }
+
+    private static function extractor(): ObjectExtractor
+    {
+        return self::$extractor ??= new ObjectExtractor();
     }
 }
